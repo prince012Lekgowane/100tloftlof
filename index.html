@@ -127,6 +127,22 @@
             40% { content: '..'; }
             60%, 100% { content: '...'; }
         }
+        
+        .btn-3d {
+            position: relative;
+            background: linear-gradient(135deg, #FF6B9D, #EC4899);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(255, 107, 157, 0.3);
+        }
+        
+        .btn-3d:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 107, 157, 0.5);
+        }
+        
+        .btn-3d:active {
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body class="text-white bg-black overflow-x-hidden">
@@ -208,6 +224,7 @@
                         Manual Update
                     </button>
                 </div>
+                <p id="lastUpdated" class="text-xs text-gray-500 mt-2"></p>
             </div>
         </div>
     </section>
@@ -501,6 +518,7 @@
         async function fetchDownloadCount() {
             const downloadCountElement = document.getElementById('downloadCount');
             const progressBar = document.getElementById('downloadProgress');
+            const lastUpdatedElement = document.getElementById('lastUpdated');
             
             // Show loading state
             downloadCountElement.innerHTML = '<span class="loading-dots">Loading</span>';
@@ -508,42 +526,66 @@
             
             try {
                 // Using a CORS proxy to bypass cross-origin restrictions
-                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const proxyUrl = 'https://corsproxy.io/?';
                 const targetUrl = 'https://loadly.io/sparksync';
                 
-                const response = await fetch(proxyUrl + targetUrl);
+                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const html = await response.text();
                 
                 // Parse the HTML to find download count
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 
-                // Look for the download count element
-                const downloadElement = doc.querySelector('.aad-basic-info-item-top span');
+                // Look for the download count element - specifically the span inside .aad-basic-info-item-top
+                const downloadElements = doc.querySelectorAll('.aad-basic-info-item-top span');
+                let foundCount = null;
                 
-                if (downloadElement) {
-                    downloadCount = parseInt(downloadElement.textContent.trim());
+                // Iterate through all matching elements to find the one with a numeric value
+                downloadElements.forEach(element => {
+                    const text = element.textContent.trim();
+                    const number = parseInt(text);
+                    if (!isNaN(number) && number > 0) {
+                        foundCount = number;
+                    }
+                });
+                
+                if (foundCount !== null) {
+                    downloadCount = foundCount;
                     updateDownloadDisplay(downloadCount);
                     lastUpdated = new Date();
+                    lastUpdatedElement.textContent = `Last updated: ${lastUpdated.toLocaleTimeString()}`;
                     
                     // Save to localStorage
                     localStorage.setItem('tlofDownloadCount', downloadCount.toString());
                     localStorage.setItem('tlofDownloadLastUpdated', lastUpdated.toString());
                 } else {
-                    throw new Error('Download count element not found');
+                    throw new Error('Download count not found in expected element');
                 }
             } catch (error) {
                 console.error('Error fetching download count:', error);
                 
                 // Fallback: Try to get from localStorage
                 const savedCount = localStorage.getItem('tlofDownloadCount');
+                const savedTime = localStorage.getItem('tlofDownloadLastUpdated');
+                
                 if (savedCount) {
                     downloadCount = parseInt(savedCount);
                     updateDownloadDisplay(downloadCount);
                     downloadCountElement.innerHTML = `${downloadCount} <span class="text-sm text-yellow-400">(cached)</span>`;
+                    
+                    if (savedTime) {
+                        lastUpdated = new Date(savedTime);
+                        lastUpdatedElement.textContent = `Last updated: ${lastUpdated.toLocaleTimeString()} (cached)`;
+                    }
                 } else {
                     downloadCountElement.textContent = 'Error';
                     progressBar.style.width = '0%';
+                    lastUpdatedElement.textContent = 'Failed to fetch data';
                 }
             }
         }
@@ -587,6 +629,7 @@
                 localStorage.setItem('tlofDownloadCount', downloadCount.toString());
                 localStorage.setItem('tlofDownloadLastUpdated', lastUpdated.toString());
                 
+                document.getElementById('lastUpdated').textContent = `Last updated: ${lastUpdated.toLocaleTimeString()} (manual)`;
                 closeManualUpdate();
             } else {
                 alert('Please enter a valid number');
@@ -608,18 +651,6 @@
                 confetti.style.height = Math.random() * 10 + 5 + 'px';
                 confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
                 confetti.style.animation = `fall ${Math.random() * 3 + 2}s linear forwards`;
-                
-                // Add animation
-                const style = document.createElement('style');
-                style.textContent = `
-                    @keyframes fall {
-                        to {
-                            transform: translateY(100vh) rotate(${Math.random() * 360}deg);
-                            opacity: 0;
-                        }
-                    }
-                `;
-                document.head.appendChild(style);
                 
                 container.appendChild(confetti);
                 
@@ -717,6 +748,18 @@
             const options = { year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('cert-date').value = now.toLocaleDateString('en-US', options);
             document.getElementById('certificate-date').textContent = now.toLocaleDateString('en-US', options);
+            
+            // Add fallback animation style
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fall {
+                    to {
+                        transform: translateY(100vh) rotate(360deg);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
             
             // Try to load from localStorage first
             const savedCount = localStorage.getItem('tlofDownloadCount');
