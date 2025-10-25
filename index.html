@@ -116,6 +116,17 @@
             border-radius: 5px;
             transition: width 0.5s ease;
         }
+        
+        .loading-dots:after {
+            content: '';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
     </style>
 </head>
 <body class="text-white bg-black overflow-x-hidden">
@@ -176,17 +187,25 @@
                 </div>
             </div>
             
-            <!-- User Counter -->
+            <!-- Live Download Counter -->
             <div class="counter-container" data-aos="fade-up" data-aos-delay="200">
-                <h3 class="text-xl font-bold mb-2">First 100 Users Count</h3>
-                <div class="counter-number" id="userCount">42</div>
-                <div class="counter-progress">
-                    <div class="counter-progress-bar" id="progressBar" style="width: 42%"></div>
+                <h3 class="text-xl font-bold mb-2">Live Download Count</h3>
+                <div class="counter-number" id="downloadCount">
+                    <span class="loading-dots">Loading</span>
                 </div>
-                <p class="text-gray-300 text-sm">Spots remaining: <span id="remainingSpots">58</span></p>
-                <div class="mt-4">
-                    <button onclick="updateCounter()" class="px-4 py-2 rounded-full glass border border-gray-600 hover:bg-gray-800 transition-all text-sm">
-                        Update Counter (Admin)
+                <div class="counter-progress">
+                    <div class="counter-progress-bar" id="downloadProgress" style="width: 0%"></div>
+                </div>
+                <p class="text-gray-300 text-sm">Total Downloads</p>
+                <div class="mt-4 flex justify-center space-x-2">
+                    <button onclick="fetchDownloadCount()" class="px-3 py-1 rounded-full glass border border-gray-600 hover:bg-gray-800 transition-all text-xs flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                    </button>
+                    <button onclick="showManualUpdate()" class="px-3 py-1 rounded-full glass border border-gray-600 hover:bg-gray-800 transition-all text-xs">
+                        Manual Update
                     </button>
                 </div>
             </div>
@@ -438,6 +457,34 @@
         </div>
     </footer>
 
+    <!-- Manual Update Modal -->
+    <div id="manualUpdateModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="glass rounded-3xl p-8 max-w-md w-full mx-4 relative">
+            <button onclick="closeManualUpdate()" class="absolute top-4 right-4 w-8 h-8 rounded-full glass flex items-center justify-center hover:bg-red-500 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            
+            <h3 class="text-2xl font-bold mb-6 text-center">Manual Download Count Update</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Current Download Count</label>
+                    <input type="number" id="manualDownloadCount" class="w-full px-4 py-3 rounded-xl glass border border-gray-600 focus:border-[#FF6B9D] focus:outline-none transition-all" placeholder="Enter download count">
+                </div>
+                
+                <div class="flex gap-4">
+                    <button onclick="closeManualUpdate()" class="flex-1 px-4 py-3 rounded-xl glass border border-gray-600 hover:bg-gray-800 transition-all">
+                        Cancel
+                    </button>
+                    <button onclick="applyManualUpdate()" class="flex-1 btn-3d text-white px-4 py-3 rounded-xl font-semibold">
+                        Update
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Initialize AOS
         AOS.init({
@@ -446,38 +493,103 @@
             offset: 100
         });
 
-        // Counter system
-        let userCount = 42; // Initial count - update this manually
-        
-        function updateCounterDisplay() {
-            document.getElementById('userCount').textContent = userCount;
-            document.getElementById('progressBar').style.width = userCount + '%';
-            document.getElementById('remainingSpots').textContent = 100 - userCount;
+        // Download count state
+        let downloadCount = 0;
+        let lastUpdated = null;
+
+        // Fetch download count from Loadly
+        async function fetchDownloadCount() {
+            const downloadCountElement = document.getElementById('downloadCount');
+            const progressBar = document.getElementById('downloadProgress');
             
-            // Check if we've reached 100 users
-            if (userCount >= 100) {
-                document.querySelector('.counter-container').innerHTML = `
-                    <h3 class="text-xl font-bold mb-2">First 100 Users</h3>
-                    <div class="text-3xl font-bold text-green-400">COMPLETE! 🎉</div>
-                    <p class="text-gray-300 text-sm mt-2">All 100 spots have been filled</p>
-                `;
+            // Show loading state
+            downloadCountElement.innerHTML = '<span class="loading-dots">Loading</span>';
+            progressBar.style.width = '0%';
+            
+            try {
+                // Using a CORS proxy to bypass cross-origin restrictions
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const targetUrl = 'https://loadly.io/sparksync';
+                
+                const response = await fetch(proxyUrl + targetUrl);
+                const html = await response.text();
+                
+                // Parse the HTML to find download count
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Look for the download count element
+                const downloadElement = doc.querySelector('.aad-basic-info-item-top span');
+                
+                if (downloadElement) {
+                    downloadCount = parseInt(downloadElement.textContent.trim());
+                    updateDownloadDisplay(downloadCount);
+                    lastUpdated = new Date();
+                    
+                    // Save to localStorage
+                    localStorage.setItem('tlofDownloadCount', downloadCount.toString());
+                    localStorage.setItem('tlofDownloadLastUpdated', lastUpdated.toString());
+                } else {
+                    throw new Error('Download count element not found');
+                }
+            } catch (error) {
+                console.error('Error fetching download count:', error);
+                
+                // Fallback: Try to get from localStorage
+                const savedCount = localStorage.getItem('tlofDownloadCount');
+                if (savedCount) {
+                    downloadCount = parseInt(savedCount);
+                    updateDownloadDisplay(downloadCount);
+                    downloadCountElement.innerHTML = `${downloadCount} <span class="text-sm text-yellow-400">(cached)</span>`;
+                } else {
+                    downloadCountElement.textContent = 'Error';
+                    progressBar.style.width = '0%';
+                }
             }
         }
-        
-        // Admin function to update counter
-        function updateCounter() {
-            const password = prompt("Enter admin password to update counter:");
-            if (password === "admin123") { // Change this to your preferred password
-                const newCount = prompt("Enter new user count (1-100):");
-                if (newCount && !isNaN(newCount) && newCount >= 1 && newCount <= 100) {
-                    userCount = parseInt(newCount);
-                    updateCounterDisplay();
-                    alert(`Counter updated to ${userCount} users`);
-                } else {
-                    alert("Invalid count. Please enter a number between 1 and 100.");
-                }
+
+        // Update download count display
+        function updateDownloadDisplay(count) {
+            const downloadCountElement = document.getElementById('downloadCount');
+            const progressBar = document.getElementById('downloadProgress');
+            
+            downloadCountElement.textContent = count;
+            
+            // Calculate progress (assuming 100 as target)
+            const progress = Math.min((count / 100) * 100, 100);
+            progressBar.style.width = `${progress}%`;
+            
+            // Add pulse animation when updated
+            progressBar.classList.add('pulse-glow');
+            setTimeout(() => {
+                progressBar.classList.remove('pulse-glow');
+            }, 2000);
+        }
+
+        // Manual update functions
+        function showManualUpdate() {
+            document.getElementById('manualUpdateModal').classList.remove('hidden');
+            document.getElementById('manualDownloadCount').value = downloadCount || '';
+        }
+
+        function closeManualUpdate() {
+            document.getElementById('manualUpdateModal').classList.add('hidden');
+        }
+
+        function applyManualUpdate() {
+            const manualCount = parseInt(document.getElementById('manualDownloadCount').value);
+            if (!isNaN(manualCount) && manualCount >= 0) {
+                downloadCount = manualCount;
+                updateDownloadDisplay(downloadCount);
+                lastUpdated = new Date();
+                
+                // Save to localStorage
+                localStorage.setItem('tlofDownloadCount', downloadCount.toString());
+                localStorage.setItem('tlofDownloadLastUpdated', lastUpdated.toString());
+                
+                closeManualUpdate();
             } else {
-                alert("Incorrect password");
+                alert('Please enter a valid number');
             }
         }
 
@@ -606,11 +718,21 @@
             document.getElementById('cert-date').value = now.toLocaleDateString('en-US', options);
             document.getElementById('certificate-date').textContent = now.toLocaleDateString('en-US', options);
             
-            // Initialize counter display
-            updateCounterDisplay();
+            // Try to load from localStorage first
+            const savedCount = localStorage.getItem('tlofDownloadCount');
+            if (savedCount) {
+                downloadCount = parseInt(savedCount);
+                updateDownloadDisplay(downloadCount);
+            }
+            
+            // Then fetch fresh data
+            fetchDownloadCount();
             
             // Create initial confetti
             createConfetti();
+            
+            // Auto-refresh every 5 minutes
+            setInterval(fetchDownloadCount, 5 * 60 * 1000);
         });
     </script>
 </body>
