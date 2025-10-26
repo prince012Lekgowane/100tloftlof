@@ -1013,39 +1013,50 @@
         
         const element = document.getElementById('certificate-pdf');
         element.classList.remove('hidden');
-        element.style.position = 'absolute';
-        element.style.left = '0';
+        element.style.position = 'fixed';
+        element.style.left = '-9999px';
         element.style.top = '0';
         element.style.width = '8.5in';
         element.style.height = '11in';
         element.style.display = 'block';
+        element.style.background = 'white';
         
+        // Wait for fonts to load
         document.fonts.ready.then(() => {
-            const opt = {
-                margin: 0,
-                filename: `TlofTlof-Founding-Member-${name.replace(/\s+/g, '-')}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    width: 816,
-                    height: 1056
-                },
-                jsPDF: { 
-                    unit: 'px', 
-                    format: [816, 1056],
-                    orientation: 'portrait' 
-                }
-            };
-            
+            // Give extra time for rendering
             setTimeout(() => {
+                const opt = {
+                    margin: 0,
+                    filename: `TlofTlof-Founding-Member-${name.replace(/\s+/g, '-')}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 3,
+                        useCORS: true,
+                        logging: true,
+                        backgroundColor: '#ffffff',
+                        windowWidth: 816,
+                        windowHeight: 1056,
+                        width: 816,
+                        height: 1056,
+                        scrollX: 0,
+                        scrollY: 0,
+                        foreignObjectRendering: false
+                    },
+                    jsPDF: { 
+                        unit: 'in', 
+                        format: 'letter',
+                        orientation: 'portrait',
+                        compress: true
+                    }
+                };
+                
                 html2pdf().set(opt).from(element).save().then(() => {
                     element.classList.add('hidden');
                     element.style.position = '';
                     element.style.left = '';
                     element.style.top = '';
                     element.style.display = '';
+                    element.style.background = '';
                     
                     alert('Certificate downloaded successfully! Share it with your friends.\n\nStart earning with TlofTlof now by downloading the app at https://tlofapp.vercel.app/');
                 }).catch(error => {
@@ -1056,8 +1067,9 @@
                     element.style.left = '';
                     element.style.top = '';
                     element.style.display = '';
+                    element.style.background = '';
                 });
-            }, 100);
+            }, 500);
         });
     }
 
