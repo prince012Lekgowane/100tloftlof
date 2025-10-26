@@ -691,483 +691,505 @@
     </div>
 
     <script>
-        // Initialize AOS
-        AOS.init({
-            duration: 800,
-            once: true,
-            offset: 100
-        });
+    // Initialize AOS
+    AOS.init({
+        duration: 800,
+        once: true,
+        offset: 100
+    });
 
-        // Download count state
-        let downloadCount = 0;
-        let lastUpdated = null;
-        let certificateImageData = null;
+    // Download count state
+    let downloadCount = 0;
+    let lastUpdated = null;
+    let certificateImageData = null;
 
-        // Fetch download count from Loadly
-        async function fetchDownloadCount() {
-            const downloadCountElement = document.getElementById('downloadCount');
-            const progressBar = document.getElementById('downloadProgress');
-            const lastUpdatedElement = document.getElementById('lastUpdated');
+    // Fetch download count from Loadly
+    async function fetchDownloadCount() {
+        const downloadCountElement = document.getElementById('downloadCount');
+        const progressBar = document.getElementById('downloadProgress');
+        const lastUpdatedElement = document.getElementById('lastUpdated');
+        
+        // Show loading state
+        downloadCountElement.innerHTML = '<span class="loading-dots">Loading</span>';
+        progressBar.style.width = '0%';
+        
+        try {
+            // Using a CORS proxy to bypass cross-origin restrictions
+            const proxyUrl = 'https://corsproxy.io/?';
+            const targetUrl = 'https://loadly.io/sparksync';
             
-            // Show loading state
-            downloadCountElement.innerHTML = '<span class="loading-dots">Loading</span>';
-            progressBar.style.width = '0%';
+            const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
             
-            try {
-                // Using a CORS proxy to bypass cross-origin restrictions
-                const proxyUrl = 'https://corsproxy.io/?';
-                const targetUrl = 'https://loadly.io/sparksync';
-                
-                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const html = await response.text();
-                
-                // Parse the HTML to find download count
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                
-                // Look for the download count element - specifically the span inside .aad-basic-info-item-top
-                const downloadElements = doc.querySelectorAll('.aad-basic-info-item-top span');
-                let foundCount = null;
-                
-                // Iterate through all matching elements to find the one with a numeric value
-                downloadElements.forEach(element => {
-                    const text = element.textContent.trim();
-                    const number = parseInt(text);
-                    if (!isNaN(number) && number > 0) {
-                        foundCount = number;
-                    }
-                });
-                
-                if (foundCount !== null) {
-                    downloadCount = foundCount;
-                    updateDownloadDisplay(downloadCount);
-                    lastUpdated = new Date();
-                    lastUpdatedElement.textContent = `Last updated: ${lastUpdated.toLocaleTimeString()}`;
-                    
-                    // Save to localStorage
-                    localStorage.setItem('tlofDownloadCount', downloadCount.toString());
-                    localStorage.setItem('tlofDownloadLastUpdated', lastUpdated.toString());
-                    
-                    // Check if we've reached 100 downloads
-                    if (downloadCount >= 100) {
-                        showTooLatePage();
-                    }
-                } else {
-                    throw new Error('Download count not found in expected element');
-                }
-            } catch (error) {
-                console.error('Error fetching download count:', error);
-                
-                // Fallback: Try to get from localStorage
-                const savedCount = localStorage.getItem('tlofDownloadCount');
-                const savedTime = localStorage.getItem('tlofDownloadLastUpdated');
-                
-                if (savedCount) {
-                    downloadCount = parseInt(savedCount);
-                    updateDownloadDisplay(downloadCount);
-                    downloadCountElement.innerHTML = `${downloadCount} <span class="text-sm text-yellow-400">(cached)</span>`;
-                    
-                    if (savedTime) {
-                        lastUpdated = new Date(savedTime);
-                        lastUpdatedElement.textContent = `Last updated: ${lastUpdated.toLocaleTimeString()} (cached)`;
-                    }
-                    
-                    // Check if we've reached 100 downloads
-                    if (downloadCount >= 100) {
-                        showTooLatePage();
-                    }
-                } else {
-                    downloadCountElement.textContent = 'Error';
-                    progressBar.style.width = '0%';
-                    lastUpdatedElement.textContent = 'Failed to fetch data';
-                }
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        }
-
-        // Update download count display
-        function updateDownloadDisplay(count) {
-            const downloadCountElement = document.getElementById('downloadCount');
-            const progressBar = document.getElementById('downloadProgress');
             
-            downloadCountElement.textContent = count;
+            const html = await response.text();
             
-            // Calculate progress (assuming 100 as target)
-            const progress = Math.min((count / 100) * 100, 100);
-            progressBar.style.width = `${progress}%`;
+            // Parse the HTML to find download count
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
             
-            // Add pulse animation when updated
-            progressBar.classList.add('pulse-glow');
-            setTimeout(() => {
-                progressBar.classList.remove('pulse-glow');
-            }, 2000);
-        }
-
-        // Show "too late" page when 100 downloads reached
-        function showTooLatePage() {
-            document.getElementById('hero-section').style.display = 'none';
-            document.getElementById('benefits').style.display = 'none';
-            document.getElementById('too-late-page').classList.remove('hidden');
-        }
-
-        // Manual update functions
-        function showManualUpdate() {
-            document.getElementById('manualUpdateModal').classList.remove('hidden');
-            document.getElementById('manualDownloadCount').value = downloadCount || '';
-        }
-
-        function closeManualUpdate() {
-            document.getElementById('manualUpdateModal').classList.add('hidden');
-        }
-
-        function applyManualUpdate() {
-            const manualCount = parseInt(document.getElementById('manualDownloadCount').value);
-            if (!isNaN(manualCount) && manualCount >= 0) {
-                downloadCount = manualCount;
+            // Look for the download count element
+            const downloadElements = doc.querySelectorAll('.aad-basic-info-item-top span');
+            let foundCount = null;
+            
+            downloadElements.forEach(element => {
+                const text = element.textContent.trim();
+                const number = parseInt(text);
+                if (!isNaN(number) && number > 0) {
+                    foundCount = number;
+                }
+            });
+            
+            if (foundCount !== null) {
+                downloadCount = foundCount;
                 updateDownloadDisplay(downloadCount);
                 lastUpdated = new Date();
+                lastUpdatedElement.textContent = `Last updated: ${lastUpdated.toLocaleTimeString()}`;
                 
                 // Save to localStorage
                 localStorage.setItem('tlofDownloadCount', downloadCount.toString());
                 localStorage.setItem('tlofDownloadLastUpdated', lastUpdated.toString());
                 
-                document.getElementById('lastUpdated').textContent = `Last updated: ${lastUpdated.toLocaleTimeString()} (manual)`;
+                // Check if we've reached 100 downloads
+                if (downloadCount >= 100) {
+                    showTooLatePage();
+                }
+            } else {
+                throw new Error('Download count not found in expected element');
+            }
+        } catch (error) {
+            console.error('Error fetching download count:', error);
+            
+            // Fallback: Try to get from localStorage
+            const savedCount = localStorage.getItem('tlofDownloadCount');
+            const savedTime = localStorage.getItem('tlofDownloadLastUpdated');
+            
+            if (savedCount) {
+                downloadCount = parseInt(savedCount);
+                updateDownloadDisplay(downloadCount);
+                downloadCountElement.innerHTML = `${downloadCount} <span class="text-sm text-yellow-400">(cached)</span>`;
+                
+                if (savedTime) {
+                    lastUpdated = new Date(savedTime);
+                    lastUpdatedElement.textContent = `Last updated: ${lastUpdated.toLocaleTimeString()} (cached)`;
+                }
                 
                 // Check if we've reached 100 downloads
                 if (downloadCount >= 100) {
                     showTooLatePage();
                 }
-                
-                closeManualUpdate();
             } else {
-                alert('Please enter a valid number');
+                downloadCountElement.textContent = 'Error';
+                progressBar.style.width = '0%';
+                lastUpdatedElement.textContent = 'Failed to fetch data';
             }
         }
+    }
 
-        // Create confetti effect
-        function createConfetti() {
-            const container = document.getElementById('confetti-container');
-            const colors = ['#FF6B9D', '#EC4899', '#A855F7', '#FFD700', '#FFFFFF'];
+    // Update download count display
+    function updateDownloadDisplay(count) {
+        const downloadCountElement = document.getElementById('downloadCount');
+        const progressBar = document.getElementById('downloadProgress');
+        
+        downloadCountElement.textContent = count;
+        
+        // Calculate progress (assuming 100 as target)
+        const progress = Math.min((count / 100) * 100, 100);
+        progressBar.style.width = `${progress}%`;
+        
+        // Add pulse animation when updated
+        progressBar.classList.add('pulse-glow');
+        setTimeout(() => {
+            progressBar.classList.remove('pulse-glow');
+        }, 2000);
+    }
+
+    // Show "too late" page when 100 downloads reached
+    function showTooLatePage() {
+        document.getElementById('hero-section').style.display = 'none';
+        document.getElementById('benefits').style.display = 'none';
+        document.getElementById('too-late-page').classList.remove('hidden');
+    }
+
+    // Manual update functions
+    function showManualUpdate() {
+        document.getElementById('manualUpdateModal').classList.remove('hidden');
+        document.getElementById('manualDownloadCount').value = downloadCount || '';
+    }
+
+    function closeManualUpdate() {
+        document.getElementById('manualUpdateModal').classList.add('hidden');
+    }
+
+    function applyManualUpdate() {
+        const manualCount = parseInt(document.getElementById('manualDownloadCount').value);
+        if (!isNaN(manualCount) && manualCount >= 0) {
+            downloadCount = manualCount;
+            updateDownloadDisplay(downloadCount);
+            lastUpdated = new Date();
             
-            for (let i = 0; i < 150; i++) {
-                const confetti = document.createElement('div');
-                confetti.className = 'confetti';
-                confetti.style.left = Math.random() * 100 + 'vw';
-                confetti.style.top = '-10px';
-                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                confetti.style.width = Math.random() * 10 + 5 + 'px';
-                confetti.style.height = Math.random() * 10 + 5 + 'px';
-                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
-                confetti.style.animation = `fall ${Math.random() * 3 + 2}s linear forwards`;
-                
-                container.appendChild(confetti);
-                
-                // Remove confetti after animation
-                setTimeout(() => {
-                    confetti.remove();
-                }, 5000);
+            // Save to localStorage
+            localStorage.setItem('tlofDownloadCount', downloadCount.toString());
+            localStorage.setItem('tlofDownloadLastUpdated', lastUpdated.toString());
+            
+            document.getElementById('lastUpdated').textContent = `Last updated: ${lastUpdated.toLocaleTimeString()} (manual)`;
+            
+            // Check if we've reached 100 downloads
+            if (downloadCount >= 100) {
+                showTooLatePage();
+            }
+            
+            closeManualUpdate();
+        } else {
+            alert('Please enter a valid number');
+        }
+    }
+
+    // Create confetti effect
+    function createConfetti() {
+        const container = document.getElementById('confetti-container');
+        const colors = ['#FF6B9D', '#EC4899', '#A855F7', '#FFD700', '#FFFFFF'];
+        
+        for (let i = 0; i < 150; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.top = '-10px';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.width = Math.random() * 10 + 5 + 'px';
+            confetti.style.height = Math.random() * 10 + 5 + 'px';
+            confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+            confetti.style.animation = `fall ${Math.random() * 3 + 2}s linear forwards`;
+            
+            container.appendChild(confetti);
+            
+            // Remove confetti after animation
+            setTimeout(() => {
+                confetti.remove();
+            }, 5000);
+        }
+    }
+
+    // Scroll to benefits section
+    function scrollToBenefits() {
+        document.getElementById('benefits').scrollIntoView({ 
+            behavior: 'smooth' 
+        });
+    }
+
+    // Update certificate preview
+    function updateCertificatePreview() {
+        const name = document.getElementById('user-name').value;
+        const date = document.getElementById('cert-date').value;
+        
+        if (name) {
+            document.getElementById('certificate-name').textContent = name;
+        }
+        
+        if (date) {
+            document.getElementById('certificate-date').textContent = date;
+        }
+        
+        // Show confirmation
+        if (name) {
+            alert('Certificate preview updated!');
+        }
+    }
+
+    // Generate certificate image for sharing
+    function generateCertificateImage() {
+        const canvas = document.getElementById('certificateImage');
+        const ctx = canvas.getContext('2d');
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw border gradient
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, '#FF6B9D');
+        gradient.addColorStop(0.5, '#EC4899');
+        gradient.addColorStop(1, '#A855F7');
+        
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 20;
+        ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+        
+        // Draw logo
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, 120, 60, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 40px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('T', canvas.width / 2, 140);
+        
+        // Draw title
+        ctx.fillStyle = '#2D3748';
+        ctx.font = 'bold 60px Playfair Display';
+        ctx.fillText('Certificate of Membership', canvas.width / 2, 240);
+        
+        // Draw line
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2 - 150, 260);
+        ctx.lineTo(canvas.width / 2 + 150, 260);
+        ctx.stroke();
+        
+        // Draw "This certifies that"
+        ctx.fillStyle = '#666';
+        ctx.font = '30px Arial';
+        ctx.fillText('This certifies that', canvas.width / 2, 320);
+        
+        // Draw user name
+        const name = document.getElementById('user-name').value || 'First Name Last Name';
+        ctx.fillStyle = '#BF953F';
+        ctx.font = 'bold 70px Playfair Display';
+        ctx.fillText(name, canvas.width / 2, 420);
+        
+        // Draw "is officially recognized as a"
+        ctx.fillStyle = '#666';
+        ctx.font = '30px Arial';
+        ctx.fillText('is officially recognized as a', canvas.width / 2, 480);
+        
+        // Draw "Founding Member"
+        ctx.fillStyle = '#2D3748';
+        ctx.font = 'bold 50px Playfair Display';
+        ctx.fillText('Founding Member', canvas.width / 2, 540);
+        
+        // Draw "of the TlofTlof community"
+        ctx.fillStyle = '#666';
+        ctx.font = '24px Arial';
+        ctx.fillText('of the TlofTlof community', canvas.width / 2, 580);
+        
+        // Draw description
+        ctx.fillStyle = '#666';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        const description = 'As one of the first 100 users, this pioneer has contributed to building the foundation of our platform and is entitled to all exclusive founding member benefits.';
+        const lines = wrapText(ctx, description, canvas.width / 2, 650, canvas.width - 200, 30);
+        
+        // Draw signature area
+        ctx.strokeStyle = '#CCC';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(150, 750);
+        ctx.lineTo(350, 750);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(canvas.width - 350, 750);
+        ctx.lineTo(canvas.width - 150, 750);
+        ctx.stroke();
+        
+        // Draw signatures
+        ctx.fillStyle = '#666';
+        ctx.font = '18px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Founder', 250, 780);
+        ctx.fillText('TlofTlof Team', 250, 810);
+        
+        ctx.fillText('Date', canvas.width - 250, 780);
+        const date = document.getElementById('cert-date').value || 'October 28, 2023';
+        ctx.fillText(date, canvas.width - 250, 810);
+        
+        // Convert to data URL for sharing
+        certificateImageData = canvas.toDataURL('image/png');
+        return certificateImageData;
+    }
+
+    // Helper function to wrap text
+    function wrapText(context, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        const lines = [];
+        
+        for(let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' ';
+            const metrics = context.measureText(testLine);
+            const testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                lines.push(line);
+                line = words[n] + ' ';
+            } else {
+                line = testLine;
             }
         }
-
-        // Scroll to benefits section
-        function scrollToBenefits() {
-            document.getElementById('benefits').scrollIntoView({ 
-                behavior: 'smooth' 
-            });
+        lines.push(line);
+        
+        for(let i = 0; i < lines.length; i++) {
+            context.fillText(lines[i], x, y + (i * lineHeight));
         }
+        
+        return lines;
+    }
 
-        // Update certificate preview
-        function updateCertificatePreview() {
-            const name = document.getElementById('user-name').value;
-            const date = document.getElementById('cert-date').value;
-            
-            if (name) {
-                document.getElementById('certificate-name').textContent = name;
-            }
-            
-            if (date) {
-                document.getElementById('certificate-date').textContent = date;
-            }
-            
-            // Show confirmation
-            if (name) {
-                alert('Certificate preview updated!');
-            }
+    // Generate PDF certificate
+    function generateCertificate() {
+        const name = document.getElementById('user-name').value;
+        
+        if (!name) {
+            alert('Please enter your name to generate the certificate.');
+            return;
         }
-
+        
+        // Update preview first
+        updateCertificatePreview();
+        
+        // Update PDF certificate content
+        document.getElementById('pdf-user-name').textContent = name;
+        document.getElementById('pdf-date').textContent = document.getElementById('cert-date').value;
+        
         // Generate certificate image for sharing
-        function generateCertificateImage() {
-            const canvas = document.getElementById('certificateImage');
-            const ctx = canvas.getContext('2d');
-            
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw background
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw border gradient
-            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            gradient.addColorStop(0, '#FF6B9D');
-            gradient.addColorStop(0.5, '#EC4899');
-            gradient.addColorStop(1, '#A855F7');
-            
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = 20;
-            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
-            
-            // Draw logo
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(canvas.width / 2, 120, 60, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 40px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('T', canvas.width / 2, 140);
-            
-            // Draw title
-            ctx.fillStyle = '#2D3748';
-            ctx.font = 'bold 60px Playfair Display';
-            ctx.fillText('Certificate of Membership', canvas.width / 2, 240);
-            
-            // Draw line
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(canvas.width / 2 - 150, 260);
-            ctx.lineTo(canvas.width / 2 + 150, 260);
-            ctx.stroke();
-            
-            // Draw "This certifies that"
-            ctx.fillStyle = '#666';
-            ctx.font = '30px Arial';
-            ctx.fillText('This certifies that', canvas.width / 2, 320);
-            
-            // Draw user name
-            const name = document.getElementById('user-name').value || 'First Name Last Name';
-            ctx.fillStyle = '#BF953F';
-            ctx.font = 'bold 70px Playfair Display';
-            ctx.fillText(name, canvas.width / 2, 420);
-            
-            // Draw "is officially recognized as a"
-            ctx.fillStyle = '#666';
-            ctx.font = '30px Arial';
-            ctx.fillText('is officially recognized as a', canvas.width / 2, 480);
-            
-            // Draw "Founding Member"
-            ctx.fillStyle = '#2D3748';
-            ctx.font = 'bold 50px Playfair Display';
-            ctx.fillText('Founding Member', canvas.width / 2, 540);
-            
-            // Draw "of the TlofTlof community"
-            ctx.fillStyle = '#666';
-            ctx.font = '24px Arial';
-            ctx.fillText('of the TlofTlof community', canvas.width / 2, 580);
-            
-            // Draw description
-            ctx.fillStyle = '#666';
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'center';
-            const description = 'As one of the first 100 users, this pioneer has contributed to building the foundation of our platform and is entitled to all exclusive founding member benefits.';
-            const lines = wrapText(ctx, description, canvas.width / 2, 650, canvas.width - 200, 30);
-            
-            // Draw signature area
-            ctx.strokeStyle = '#CCC';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(150, 750);
-            ctx.lineTo(350, 750);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.moveTo(canvas.width - 350, 750);
-            ctx.lineTo(canvas.width - 150, 750);
-            ctx.stroke();
-            
-            // Draw signatures
-            ctx.fillStyle = '#666';
-            ctx.font = '18px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Founder', 250, 780);
-            ctx.fillText('TlofTlof Team', 250, 810);
-            
-            ctx.fillText('Date', canvas.width - 250, 780);
-            const date = document.getElementById('cert-date').value || 'October 28, 2023';
-            ctx.fillText(date, canvas.width - 250, 810);
-            
-            // Convert to data URL for sharing
-            certificateImageData = canvas.toDataURL('image/png');
-            return certificateImageData;
-        }
-
-        // Helper function to wrap text
-        function wrapText(context, text, x, y, maxWidth, lineHeight) {
-            const words = text.split(' ');
-            let line = '';
-            const lines = [];
-            
-            for(let n = 0; n < words.length; n++) {
-                const testLine = line + words[n] + ' ';
-                const metrics = context.measureText(testLine);
-                const testWidth = metrics.width;
-                if (testWidth > maxWidth && n > 0) {
-                    lines.push(line);
-                    line = words[n] + ' ';
-                } else {
-                    line = testLine;
-                }
-            }
-            lines.push(line);
-            
-            for(let i = 0; i < lines.length; i++) {
-                context.fillText(lines[i], x, y + (i * lineHeight));
-            }
-            
-            return lines;
-        }
-
-        // Generate PDF certificate
-        function generateCertificate() {
-            const name = document.getElementById('user-name').value;
-            
-            if (!name) {
-                alert('Please enter your name to generate the certificate.');
-                return;
-            }
-            
-            // Update preview first
-            updateCertificatePreview();
-            
-            // Update PDF certificate content
-            document.getElementById('pdf-user-name').textContent = name;
-            document.getElementById('pdf-date').textContent = document.getElementById('cert-date').value;
-            
-            // Generate certificate image for sharing
-            generateCertificateImage();
-            
-            // Generate confetti
-            createConfetti();
-            
-            // Generate PDF using the hidden certificate-pdf element
-            const element = document.getElementById('certificate-pdf');
+        generateCertificateImage();
+        
+        // Generate confetti
+        createConfetti();
+        
+        // Generate PDF using the hidden certificate-pdf element
+        const element = document.getElementById('certificate-pdf');
+        
+        // Temporarily adjust styles for PDF rendering
+        element.classList.remove('hidden');
+        element.style.position = 'absolute';
+        element.style.left = '0';
+        element.style.top = '0';
+        element.style.width = '8.5in';
+        element.style.height = '11in';
+        element.style.display = 'block';
+        
+        // Ensure fonts are loaded before generating PDF
+        document.fonts.ready.then(() => {
             const opt = {
                 margin: 0,
                 filename: `TlofTlof-Founding-Member-${name.replace(/\s+/g, '-')}.pdf`,
-                image: { type: 'jpeg', quality: 1.0 },
+                image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { 
                     scale: 2,
                     useCORS: true,
-                    logging: false
+                    logging: false,
+                    width: 816, // 8.5in at 96dpi
+                    height: 1056 // 11in at 96dpi
                 },
                 jsPDF: { 
-                    unit: 'in', 
-                    format: 'letter', 
+                    unit: 'px', 
+                    format: [816, 1056], // Letter size in pixels at 96dpi
                     orientation: 'portrait' 
                 }
             };
             
-            // Show the hidden certificate temporarily
-            element.classList.remove('hidden');
-            
-            html2pdf().set(opt).from(element).save().then(() => {
-                // Hide the certificate again
-                element.classList.add('hidden');
-                
-                // Show success message
-                alert('Certificate downloaded successfully! Share it with your friends.');
-            }).catch(error => {
-                console.error('PDF generation error:', error);
-                alert('There was an error generating the PDF. Please try again.');
-                
-                // Hide the certificate again
-                element.classList.add('hidden');
-            });
-        }
-
-        // Share on social media
-        function shareOnSocial(platform) {
-            const name = document.getElementById('user-name').value || 'a TlofTlof Founding Member';
-            const text = `I'm excited to be one of the first 100 users of TlofTlof! As a founding member, I get exclusive benefits including DOUBLE earnings when I reach the minimum withdrawal amount. Join me on this exciting journey! 🎉 #TlofTlof #FoundingMember`;
-            
-            let url = '';
-            
-            // Generate certificate image if not already generated
-            if (!certificateImageData) {
-                generateCertificateImage();
-            }
-            
-            switch(platform) {
-                case 'twitter':
-                    url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-                    break;
-                case 'whatsapp':
-                    url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-                    break;
-                case 'instagram':
-                    // For Instagram, we can't directly share an image, but we can guide the user
-                    alert('To share on Instagram:\n1. Take a screenshot of your certificate\n2. Post it to your Instagram story or feed\n3. Tag @TlofTlof in your post!');
-                    return;
-            }
-            
-            if (url) {
-                window.open(url, '_blank');
-            }
-        }
-
-        // Download app function
-        function downloadApp() {
-            alert('Redirecting to download page...');
-            // In a real implementation, this would redirect to the actual download page
-            // window.location.href = 'https://tlof-tlof.com/download';
-        }
-
-        // Set current date as default
-        document.addEventListener('DOMContentLoaded', function() {
-            const now = new Date();
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('cert-date').value = now.toLocaleDateString('en-US', options);
-            document.getElementById('certificate-date').textContent = now.toLocaleDateString('en-US', options);
-            
-            // Add fallback animation style
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes fall {
-                    to {
-                        transform: translateY(100vh) rotate(360deg);
-                        opacity: 0;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-            
-            // Try to load from localStorage first
-            const savedCount = localStorage.getItem('tlofDownloadCount');
-            if (savedCount) {
-                downloadCount = parseInt(savedCount);
-                updateDownloadDisplay(downloadCount);
-                
-                // Check if we've reached 100 downloads
-                if (downloadCount >= 100) {
-                    showTooLatePage();
-                }
-            }
-            
-            // Then fetch fresh data
-            fetchDownloadCount();
-            
-            // Create initial confetti
-            createConfetti();
-            
-            // Auto-refresh every 5 minutes
-            setInterval(fetchDownloadCount, 5 * 60 * 1000);
+            // Add a slight delay to ensure rendering
+            setTimeout(() => {
+                html2pdf().set(opt).from(element).save().then(() => {
+                    // Restore original styles
+                    element.classList.add('hidden');
+                    element.style.position = '';
+                    element.style.left = '';
+                    element.style.top = '';
+                    element.style.display = '';
+                    
+                    // Show success message
+                    alert('Certificate downloaded successfully! Share it with your friends.');
+                }).catch(error => {
+                    console.error('PDF generation error:', error);
+                    alert('There was an error generating the PDF. Please try again.');
+                    
+                    // Restore original styles
+                    element.classList.add('hidden');
+                    element.style.position = '';
+                    element.style.left = '';
+                    element.style.top = '';
+                    element.style.display = '';
+                });
+            }, 100); // 100ms delay to ensure rendering
         });
-    </script>
+    }
+
+    // Share on social media
+    function shareOnSocial(platform) {
+        const name = document.getElementById('user-name').value || 'a TlofTlof Founding Member';
+        const text = `I'm excited to be one of the first 100 users of TlofTlof! As a founding member, I get exclusive benefits including DOUBLE earnings when I reach the minimum withdrawal amount. Join me on this exciting journey! 🎉 #TlofTlof #FoundingMember`;
+        
+        let url = '';
+        
+        // Generate certificate image if not already generated
+        if (!certificateImageData) {
+            generateCertificateImage();
+        }
+        
+        switch(platform) {
+            case 'twitter':
+                url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                break;
+            case 'whatsapp':
+                url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                break;
+            case 'instagram':
+                // For Instagram, we can't directly share an image, but we can guide the user
+                alert('To share on Instagram:\n1. Take a screenshot of your certificate\n2. Post it to your Instagram story or feed\n3. Tag @TlofTlof in your post!');
+                return;
+        }
+        
+        if (url) {
+            window.open(url, '_blank');
+        }
+    }
+
+    // Download app function
+    function downloadApp() {
+        alert('Redirecting to download page...');
+        // In a real implementation, this would redirect to the actual download page
+        // window.location.href = 'https://tlof-tlof.com/download';
+    }
+
+    // Set current date as default
+    document.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('cert-date').value = now.toLocaleDateString('en-US', options);
+        document.getElementById('certificate-date').textContent = now.toLocaleDateString('en-US', options);
+        
+        // Add fallback animation style
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fall {
+                to {
+                    transform: translateY(100vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Try to load from localStorage first
+        const savedCount = localStorage.getItem('tlofDownloadCount');
+        if (savedCount) {
+            downloadCount = parseInt(savedCount);
+            updateDownloadDisplay(downloadCount);
+            
+            // Check if we've reached 100 downloads
+            if (downloadCount >= 100) {
+                showTooLatePage();
+            }
+        }
+        
+        // Then fetch fresh data
+        fetchDownloadCount();
+        
+        // Create initial confetti
+        createConfetti();
+        
+        // Auto-refresh every 5 minutes
+        setInterval(fetchDownloadCount, 5 * 60 * 1000);
+    });
+</script>
 </body>
 </html>
