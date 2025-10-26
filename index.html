@@ -143,11 +143,155 @@
         .btn-3d:active {
             transform: translateY(-1px);
         }
+        
+        #certificateImage {
+            display: none;
+        }
+        
+        /* Certificate PDF specific styles */
+        .certificate-pdf {
+            width: 8.5in;
+            height: 11in;
+            background: white;
+            color: #2D3748;
+            font-family: 'Playfair Display', serif;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .certificate-pdf .border-gradient {
+            position: absolute;
+            top: 0.2in;
+            left: 0.2in;
+            right: 0.2in;
+            bottom: 0.2in;
+            border: 0.1in solid;
+            border-image: linear-gradient(45deg, #FF6B9D, #EC4899, #A855F7, #FF6B9D) 1;
+            z-index: 1;
+        }
+        
+        .certificate-pdf .content {
+            position: relative;
+            z-index: 2;
+            padding: 1in;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .certificate-pdf .logo {
+            width: 1.5in;
+            height: 1.5in;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FF6B9D, #EC4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.5in;
+        }
+        
+        .certificate-pdf .logo span {
+            color: white;
+            font-size: 0.8in;
+            font-weight: bold;
+        }
+        
+        .certificate-pdf h1 {
+            font-size: 0.5in;
+            font-weight: bold;
+            margin-bottom: 0.2in;
+        }
+        
+        .certificate-pdf .divider {
+            width: 3in;
+            height: 0.02in;
+            background: linear-gradient(to right, #FF6B9D, #EC4899);
+            margin: 0 auto 0.3in;
+        }
+        
+        .certificate-pdf .user-name {
+            font-size: 0.6in;
+            font-weight: bold;
+            margin: 0.3in 0;
+            background: linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .certificate-pdf .member-type {
+            font-size: 0.4in;
+            font-weight: bold;
+            margin-bottom: 0.2in;
+        }
+        
+        .certificate-pdf .description {
+            font-size: 0.2in;
+            line-height: 1.5;
+            margin-bottom: 0.5in;
+            max-width: 6in;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .certificate-pdf .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5in;
+        }
+        
+        .certificate-pdf .signature-line {
+            width: 2in;
+            height: 0.01in;
+            background: #666;
+            margin: 0.1in auto;
+        }
     </style>
 </head>
 <body class="text-white bg-black overflow-x-hidden">
     <!-- Confetti Container -->
     <div id="confetti-container" class="fixed inset-0 pointer-events-none z-50"></div>
+    
+    <!-- Hidden certificate image for sharing -->
+    <canvas id="certificateImage" width="1200" height="900"></canvas>
+    
+    <!-- Hidden certificate for PDF generation -->
+    <div id="certificate-pdf" class="certificate-pdf hidden">
+        <div class="border-gradient"></div>
+        <div class="content">
+            <div class="logo">
+                <span>T</span>
+            </div>
+            <h1>Certificate of Membership</h1>
+            <div class="divider"></div>
+            <p style="font-size: 0.25in; color: #666;">This certifies that</p>
+            
+            <div class="user-name" id="pdf-user-name">First Name Last Name</div>
+            
+            <p style="font-size: 0.25in; color: #666;">is officially recognized as a</p>
+            <div class="member-type">Founding Member</div>
+            <p style="font-size: 0.2in; color: #666;">of the TlofTlof community</p>
+            
+            <div class="description">
+                As one of the first 100 users, this pioneer has contributed to building 
+                the foundation of our platform and is entitled to all exclusive founding member benefits.
+            </div>
+            
+            <div class="signatures">
+                <div style="text-align: center;">
+                    <div class="signature-line"></div>
+                    <p style="font-size: 0.18in; color: #666;">Founder</p>
+                    <p style="font-size: 0.2in; font-weight: bold;">TlofTlof Team</p>
+                </div>
+                <div style="text-align: center;">
+                    <div class="signature-line"></div>
+                    <p style="font-size: 0.18in; color: #666;">Date</p>
+                    <p style="font-size: 0.2in; font-weight: bold;" id="pdf-date">October 28, 2023</p>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <!-- Navigation -->
     <nav class="fixed top-0 left-0 right-0 z-40 py-4 px-6 transition-all duration-300 bg-black/80 backdrop-blur-lg">
@@ -169,7 +313,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="gradient-bg pt-32 pb-20 px-4 relative overflow-hidden min-h-screen flex items-center">
+    <section id="hero-section" class="gradient-bg pt-32 pb-20 px-4 relative overflow-hidden min-h-screen flex items-center">
         <!-- Floating Elements -->
         <div class="absolute top-20 left-10 w-32 h-32 bg-pink-600 opacity-20 rounded-full blur-3xl float"></div>
         <div class="absolute bottom-20 right-10 w-40 h-40 bg-purple-600 opacity-20 rounded-full blur-3xl float" style="animation-delay: 2s;"></div>
@@ -245,9 +389,9 @@
                     <div class="w-20 h-20 rounded-full bg-gradient-to-r from-[#FF6B9D] to-[#EC4899] flex items-center justify-center mx-auto mb-6 pulse-glow">
                         <span class="text-2xl">💰</span>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4 gold-text">Double Earnings</h3>
+                    <h3 class="text-2xl font-bold mb-4 gold-text">Double Your First Withdrawal</h3>
                     <p class="text-gray-300">
-                        When you reach the minimum withdrawal amount, we'll <span class="font-bold text-white">DOUBLE your payout</span> as a thank you for being an early supporter.
+                        The <span class="font-bold text-white">first 100 users</span> get their <span class="font-bold text-white">first withdrawal DOUBLED</span> as a thank you for being an early supporter.
                     </p>
                     <div class="mt-6 p-4 bg-gradient-to-r from-[#FF6B9D]/20 to-[#EC4899]/20 rounded-xl">
                         <p class="text-sm font-bold">Example: Reach R100 → Get R200!</p>
@@ -502,6 +646,50 @@
         </div>
     </div>
 
+    <!-- Too Late Page (Hidden by default) -->
+    <div id="too-late-page" class="fixed inset-0 bg-black z-50 hidden flex-col items-center justify-center px-4">
+        <div class="text-center max-w-2xl">
+            <div class="mb-8">
+                <div class="h-24 w-24 rounded-full bg-gradient-to-r from-[#FF6B9D] to-[#EC4899] flex items-center justify-center mx-auto mb-6">
+                    <span class="font-bold text-white text-3xl">T</span>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-bold mb-6 playfair gold-text">Too Late!</h1>
+                <p class="text-xl text-gray-300 mb-8">
+                    The first 100 spots have been claimed! But don't worry, you can still join TlofTlof and start earning today.
+                </p>
+            </div>
+            
+            <div class="glass rounded-3xl p-8 mb-8">
+                <h2 class="text-3xl font-bold mb-4">What You Missed</h2>
+                <ul class="text-left space-y-3 text-gray-300 mb-6">
+                    <li class="flex items-start gap-3">
+                        <span class="text-[#FF6B9D]">•</span>
+                        <span>Double your first withdrawal</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-[#EC4899]">•</span>
+                        <span>Exclusive founding member certificate</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-[#A855F7]">•</span>
+                        <span>Early access to new features</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-[#FFD700]">•</span>
+                        <span>Direct communication with founders</span>
+                    </li>
+                </ul>
+                <p class="text-lg">
+                    But you can still enjoy all the regular benefits of TlofTlof!
+                </p>
+            </div>
+            
+            <button onclick="downloadApp()" class="btn-3d text-white px-8 py-4 rounded-full font-semibold text-lg">
+                Download TlofTlof Now
+            </button>
+        </div>
+    </div>
+
     <script>
         // Initialize AOS
         AOS.init({
@@ -513,6 +701,7 @@
         // Download count state
         let downloadCount = 0;
         let lastUpdated = null;
+        let certificateImageData = null;
 
         // Fetch download count from Loadly
         async function fetchDownloadCount() {
@@ -563,6 +752,11 @@
                     // Save to localStorage
                     localStorage.setItem('tlofDownloadCount', downloadCount.toString());
                     localStorage.setItem('tlofDownloadLastUpdated', lastUpdated.toString());
+                    
+                    // Check if we've reached 100 downloads
+                    if (downloadCount >= 100) {
+                        showTooLatePage();
+                    }
                 } else {
                     throw new Error('Download count not found in expected element');
                 }
@@ -581,6 +775,11 @@
                     if (savedTime) {
                         lastUpdated = new Date(savedTime);
                         lastUpdatedElement.textContent = `Last updated: ${lastUpdated.toLocaleTimeString()} (cached)`;
+                    }
+                    
+                    // Check if we've reached 100 downloads
+                    if (downloadCount >= 100) {
+                        showTooLatePage();
                     }
                 } else {
                     downloadCountElement.textContent = 'Error';
@@ -608,6 +807,13 @@
             }, 2000);
         }
 
+        // Show "too late" page when 100 downloads reached
+        function showTooLatePage() {
+            document.getElementById('hero-section').style.display = 'none';
+            document.getElementById('benefits').style.display = 'none';
+            document.getElementById('too-late-page').classList.remove('hidden');
+        }
+
         // Manual update functions
         function showManualUpdate() {
             document.getElementById('manualUpdateModal').classList.remove('hidden');
@@ -630,6 +836,12 @@
                 localStorage.setItem('tlofDownloadLastUpdated', lastUpdated.toString());
                 
                 document.getElementById('lastUpdated').textContent = `Last updated: ${lastUpdated.toLocaleTimeString()} (manual)`;
+                
+                // Check if we've reached 100 downloads
+                if (downloadCount >= 100) {
+                    showTooLatePage();
+                }
+                
                 closeManualUpdate();
             } else {
                 alert('Please enter a valid number');
@@ -687,6 +899,140 @@
             }
         }
 
+        // Generate certificate image for sharing
+        function generateCertificateImage() {
+            const canvas = document.getElementById('certificateImage');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw border gradient
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#FF6B9D');
+            gradient.addColorStop(0.5, '#EC4899');
+            gradient.addColorStop(1, '#A855F7');
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 20;
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+            
+            // Draw logo
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, 120, 60, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('T', canvas.width / 2, 140);
+            
+            // Draw title
+            ctx.fillStyle = '#2D3748';
+            ctx.font = 'bold 60px Playfair Display';
+            ctx.fillText('Certificate of Membership', canvas.width / 2, 240);
+            
+            // Draw line
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2 - 150, 260);
+            ctx.lineTo(canvas.width / 2 + 150, 260);
+            ctx.stroke();
+            
+            // Draw "This certifies that"
+            ctx.fillStyle = '#666';
+            ctx.font = '30px Arial';
+            ctx.fillText('This certifies that', canvas.width / 2, 320);
+            
+            // Draw user name
+            const name = document.getElementById('user-name').value || 'First Name Last Name';
+            ctx.fillStyle = '#BF953F';
+            ctx.font = 'bold 70px Playfair Display';
+            ctx.fillText(name, canvas.width / 2, 420);
+            
+            // Draw "is officially recognized as a"
+            ctx.fillStyle = '#666';
+            ctx.font = '30px Arial';
+            ctx.fillText('is officially recognized as a', canvas.width / 2, 480);
+            
+            // Draw "Founding Member"
+            ctx.fillStyle = '#2D3748';
+            ctx.font = 'bold 50px Playfair Display';
+            ctx.fillText('Founding Member', canvas.width / 2, 540);
+            
+            // Draw "of the TlofTlof community"
+            ctx.fillStyle = '#666';
+            ctx.font = '24px Arial';
+            ctx.fillText('of the TlofTlof community', canvas.width / 2, 580);
+            
+            // Draw description
+            ctx.fillStyle = '#666';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            const description = 'As one of the first 100 users, this pioneer has contributed to building the foundation of our platform and is entitled to all exclusive founding member benefits.';
+            const lines = wrapText(ctx, description, canvas.width / 2, 650, canvas.width - 200, 30);
+            
+            // Draw signature area
+            ctx.strokeStyle = '#CCC';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(150, 750);
+            ctx.lineTo(350, 750);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(canvas.width - 350, 750);
+            ctx.lineTo(canvas.width - 150, 750);
+            ctx.stroke();
+            
+            // Draw signatures
+            ctx.fillStyle = '#666';
+            ctx.font = '18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Founder', 250, 780);
+            ctx.fillText('TlofTlof Team', 250, 810);
+            
+            ctx.fillText('Date', canvas.width - 250, 780);
+            const date = document.getElementById('cert-date').value || 'October 28, 2023';
+            ctx.fillText(date, canvas.width - 250, 810);
+            
+            // Convert to data URL for sharing
+            certificateImageData = canvas.toDataURL('image/png');
+            return certificateImageData;
+        }
+
+        // Helper function to wrap text
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            const lines = [];
+            
+            for(let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = context.measureText(testLine);
+                const testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    lines.push(line);
+                    line = words[n] + ' ';
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line);
+            
+            for(let i = 0; i < lines.length; i++) {
+                context.fillText(lines[i], x, y + (i * lineHeight));
+            }
+            
+            return lines;
+        }
+
         // Generate PDF certificate
         function generateCertificate() {
             const name = document.getElementById('user-name').value;
@@ -699,22 +1045,49 @@
             // Update preview first
             updateCertificatePreview();
             
+            // Update PDF certificate content
+            document.getElementById('pdf-user-name').textContent = name;
+            document.getElementById('pdf-date').textContent = document.getElementById('cert-date').value;
+            
+            // Generate certificate image for sharing
+            generateCertificateImage();
+            
             // Generate confetti
             createConfetti();
             
-            // Generate PDF
-            const element = document.getElementById('certificate');
+            // Generate PDF using the hidden certificate-pdf element
+            const element = document.getElementById('certificate-pdf');
             const opt = {
-                margin: 0.5,
+                margin: 0,
                 filename: `TlofTlof-Founding-Member-${name.replace(/\s+/g, '-')}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                image: { type: 'jpeg', quality: 1.0 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                },
+                jsPDF: { 
+                    unit: 'in', 
+                    format: 'letter', 
+                    orientation: 'portrait' 
+                }
             };
             
+            // Show the hidden certificate temporarily
+            element.classList.remove('hidden');
+            
             html2pdf().set(opt).from(element).save().then(() => {
+                // Hide the certificate again
+                element.classList.add('hidden');
+                
                 // Show success message
                 alert('Certificate downloaded successfully! Share it with your friends.');
+            }).catch(error => {
+                console.error('PDF generation error:', error);
+                alert('There was an error generating the PDF. Please try again.');
+                
+                // Hide the certificate again
+                element.classList.add('hidden');
             });
         }
 
@@ -725,6 +1098,11 @@
             
             let url = '';
             
+            // Generate certificate image if not already generated
+            if (!certificateImageData) {
+                generateCertificateImage();
+            }
+            
             switch(platform) {
                 case 'twitter':
                     url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
@@ -733,13 +1111,21 @@
                     url = `https://wa.me/?text=${encodeURIComponent(text)}`;
                     break;
                 case 'instagram':
-                    alert('Share your certificate screenshot on Instagram and tag us!');
+                    // For Instagram, we can't directly share an image, but we can guide the user
+                    alert('To share on Instagram:\n1. Take a screenshot of your certificate\n2. Post it to your Instagram story or feed\n3. Tag @TlofTlof in your post!');
                     return;
             }
             
             if (url) {
                 window.open(url, '_blank');
             }
+        }
+
+        // Download app function
+        function downloadApp() {
+            alert('Redirecting to download page...');
+            // In a real implementation, this would redirect to the actual download page
+            // window.location.href = 'https://tlof-tlof.com/download';
         }
 
         // Set current date as default
@@ -766,6 +1152,11 @@
             if (savedCount) {
                 downloadCount = parseInt(savedCount);
                 updateDownloadDisplay(downloadCount);
+                
+                // Check if we've reached 100 downloads
+                if (downloadCount >= 100) {
+                    showTooLatePage();
+                }
             }
             
             // Then fetch fresh data
